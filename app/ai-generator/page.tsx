@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
+import PageShell from "../components/PageShell";
 import TabSelector from "../components/TabSelector";
 import { Download, Wand2, FileText, ClipboardList } from "lucide-react";
 
@@ -15,10 +14,7 @@ export default function AIGeneratorPage() {
   const [activeTab, setActiveTab] = useState("lesson");
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 ml-[260px] flex flex-col">
-        <TopBar />
+    <PageShell>
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-6xl mx-auto px-8 py-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">
@@ -94,8 +90,7 @@ export default function AIGeneratorPage() {
             </div>
           </div>
         </main>
-      </div>
-    </div>
+    </PageShell>
   );
 }
 

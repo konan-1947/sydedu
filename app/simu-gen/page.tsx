@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import TopBar from "../components/TopBar";
+import PageShell from "../components/PageShell";
 import {
   Sparkles,
   Send,
@@ -117,27 +116,25 @@ export default function SimuGenPage() {
 
   const currentIndex = getStepIndex(agentStep);
   const isProcessing = agentStep === "analyzing" || agentStep === "generating" || agentStep === "reviewing";
+  const panelCompact = isProcessing || agentStep === "done";
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 ml-[260px] flex flex-col">
-        <TopBar />
+    <PageShell>
         <main className="flex-1 overflow-hidden">
-          <div className="h-full grid grid-cols-12 gap-4 p-4">
+          <div className="h-full flex gap-3 p-3">
             {/* Left Panel */}
-            <div className="col-span-3 flex flex-col gap-4 overflow-y-auto">
+            <div className={`shrink-0 flex flex-col gap-3 overflow-y-auto transition-all duration-300 ${panelCompact ? "w-[240px]" : "w-[300px]"}`}>
               {/* Prompt Input */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={18} className="text-orange-500" />
-                  <h2 className="font-bold text-gray-900">SimuGen AI</h2>
+              <div className="bg-white rounded-2xl border border-gray-100 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={16} className="text-orange-500" />
+                  <h2 className="font-semibold text-sm text-gray-900">SimuGen AI</h2>
                 </div>
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Mô tả mô phỏng vật lý bạn muốn tạo..."
-                  rows={4}
+                  rows={panelCompact ? 2 : 4}
                   disabled={isProcessing}
                   className="w-full rounded-xl border border-gray-200 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                   onKeyDown={(e) => {
@@ -179,22 +176,22 @@ export default function SimuGenPage() {
 
               {/* Progress Steps */}
               {agentStep !== "idle" && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Tiến trình</p>
-                  <div className="space-y-3">
+                <div className="bg-white rounded-2xl border border-gray-100 p-3">
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase mb-2">Tiến trình</p>
+                  <div className="space-y-1.5">
                     {STEPS.map((s, i) => {
                       const isDone = currentIndex > i;
                       const isActive = currentIndex === i;
                       return (
-                        <div key={s.key} className="flex items-center gap-2.5">
+                        <div key={s.key} className="flex items-center gap-2">
                           {isDone ? (
-                            <CheckCircle2 size={16} className="text-green-500 shrink-0" />
+                            <CheckCircle2 size={14} className="text-green-500 shrink-0" />
                           ) : isActive ? (
-                            <Loader2 size={16} className="text-blue-500 animate-spin shrink-0" />
+                            <Loader2 size={14} className="text-blue-500 animate-spin shrink-0" />
                           ) : (
-                            <Circle size={16} className="text-gray-300 shrink-0" />
+                            <Circle size={14} className="text-gray-300 shrink-0" />
                           )}
-                          <span className={`text-sm ${isActive ? "text-blue-600 font-medium" : isDone ? "text-gray-700" : "text-gray-400"}`}>
+                          <span className={`text-xs ${isActive ? "text-blue-600 font-medium" : isDone ? "text-gray-700" : "text-gray-400"}`}>
                             {s.label}
                           </span>
                         </div>
@@ -211,12 +208,12 @@ export default function SimuGenPage() {
 
               {/* Plan & Questions - Confirming step */}
               {agentStep === "confirming" && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Kế hoạch</p>
+                <div className="bg-white rounded-2xl border border-gray-100 p-3">
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1.5">Kế hoạch</p>
                   <textarea
                     value={plan}
                     onChange={(e) => setPlan(e.target.value)}
-                    rows={6}
+                    rows={4}
                     className="w-full rounded-xl border border-gray-200 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
 
@@ -255,7 +252,7 @@ export default function SimuGenPage() {
             </div>
 
             {/* Right Panel - Simulation */}
-            <div className="col-span-9 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {html ? (
                 <iframe
                   srcDoc={html}
@@ -273,7 +270,6 @@ export default function SimuGenPage() {
             </div>
           </div>
         </main>
-      </div>
-    </div>
+    </PageShell>
   );
 }
