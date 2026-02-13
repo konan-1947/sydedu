@@ -1,65 +1,143 @@
-import Image from "next/image";
+import Sidebar from "./components/Sidebar";
+import TopBar from "./components/TopBar";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Presentation,
+  Brain,
+  Activity,
+  Sparkles,
+  Clock,
+  FileText,
+  ClipboardList,
+  Video,
+} from "lucide-react";
+
+const tools = [
+  {
+    title: "Smart Slide Builder",
+    desc: "Tải lên giáo án và tự động tạo slide bài giảng chuyên nghiệp theo cấu trúc chuẩn.",
+    icon: Presentation,
+    gradient: "from-blue-500 to-indigo-500",
+    href: "/slide-builder",
+  },
+  {
+    title: "AI Generator",
+    desc: "Soạn giáo án và tạo đề thi tự động bằng AI, tiết kiệm thời gian chuẩn bị.",
+    icon: Brain,
+    gradient: "from-purple-500 to-pink-500",
+    href: "/ai-generator",
+  },
+  {
+    title: "Physics Mapper",
+    desc: "Phân tích video thực tế, trích xuất chuyển động và hiển thị đồ thị vật lý.",
+    icon: Activity,
+    gradient: "from-emerald-500 to-teal-500",
+    href: "/physics-mapper",
+  },
+  {
+    title: "SimuGen AI",
+    desc: "Chuyển mô tả tiếng Việt thành mô phỏng vật lý tương tác chạy trực tiếp trên trình duyệt.",
+    icon: Sparkles,
+    gradient: "from-orange-500 to-amber-500",
+    href: "/simu-gen",
+  },
+];
+
+const recentActivities = [
+  { title: "Đã tạo slide bài Quang học lớp 11", time: "2 giờ trước" },
+  { title: "Đã soạn đề thi giữa kỳ Vật lý 10", time: "Hôm qua" },
+  { title: "Đã phân tích video chuyển động ném xiên", time: "3 ngày trước" },
+];
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="flex-1 ml-[260px] flex flex-col">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-6xl mx-auto px-8 py-8">
+            {/* Mini Dashboard */}
+            <div className="mb-10 grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[
+                { label: "Slide đã tạo", value: "12", icon: Presentation, color: "text-blue-600", bg: "bg-blue-50" },
+                { label: "Giáo án", value: "8", icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
+                { label: "Đề thi", value: "5", icon: ClipboardList, color: "text-pink-600", bg: "bg-pink-50" },
+                { label: "Video phân tích", value: "3", icon: Video, color: "text-emerald-600", bg: "bg-emerald-50" },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="bg-white rounded-2xl p-5 border border-gray-100 flex items-center gap-4"
+                >
+                  <div className={`w-11 h-11 ${stat.bg} rounded-xl flex items-center justify-center`}>
+                    <stat.icon size={20} className={stat.color} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-xs text-gray-500">{stat.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 3 Tool Cards */}
+            <div className="mb-10">
+              <h2 className="text-xl font-bold text-gray-900 mb-5">
+                Công cụ chính
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {tools.map((tool) => (
+                  <Link
+                    key={tool.href}
+                    href={tool.href}
+                    className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all group"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${tool.gradient} flex items-center justify-center mb-4`}
+                    >
+                      <tool.icon size={26} className="text-white" />
+                    </div>
+                    <h3 className="font-bold text-lg text-gray-900 mb-2 flex items-center gap-2">
+                      {tool.title}
+                      <ArrowRight
+                        size={16}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500"
+                      />
+                    </h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                      {tool.desc}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Activities */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Hoạt động gần đây
+              </h2>
+              <div className="space-y-3">
+                {recentActivities.map((a, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-xl px-5 py-4 border border-gray-100 flex items-center gap-4"
+                  >
+                    <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Clock size={16} className="text-gray-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-800">{a.title}</p>
+                      <p className="text-xs text-gray-400">{a.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
