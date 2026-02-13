@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import PageShell from "../components/PageShell";
 import {
   Sparkles,
@@ -9,6 +10,8 @@ import {
   CheckCircle2,
   Circle,
   Play,
+  ArrowLeft,
+  Check,
 } from "lucide-react";
 
 const EXAMPLE_PROMPTS = [
@@ -34,6 +37,7 @@ function getStepIndex(step: AgentStep): number {
 }
 
 export default function SimuGenPage() {
+  const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [agentStep, setAgentStep] = useState<AgentStep>("idle");
   const [error, setError] = useState("");
@@ -44,6 +48,23 @@ export default function SimuGenPage() {
   const [questions, setQuestions] = useState<string[] | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
   const [fixes, setFixes] = useState<string | null>(null);
+
+  // Return-to-slide flow
+  const [returnToSlide, setReturnToSlide] = useState(false);
+
+  // On mount: check if coming from slide-builder
+  useEffect(() => {
+    const shouldReturn = sessionStorage.getItem("simugen_return");
+    const prefill = sessionStorage.getItem("simugen_prefill");
+    if (shouldReturn) {
+      setReturnToSlide(true);
+      sessionStorage.removeItem("simugen_return");
+    }
+    if (prefill) {
+      setPrompt(prefill);
+      sessionStorage.removeItem("simugen_prefill");
+    }
+  }, []);
 
   const reset = () => {
     setAgentStep("idle");
@@ -114,6 +135,12 @@ export default function SimuGenPage() {
     }
   };
 
+  const handleInsertToSlide = () => {
+    if (!html) return;
+    sessionStorage.setItem("simugen_result_html", html);
+    router.push("/slide-builder");
+  };
+
   const currentIndex = getStepIndex(agentStep);
   const isProcessing = agentStep === "analyzing" || agentStep === "generating" || agentStep === "reviewing";
   const panelCompact = isProcessing || agentStep === "done";
@@ -124,6 +151,16 @@ export default function SimuGenPage() {
           <div className="h-full flex gap-3 p-3">
             {/* Left Panel */}
             <div className={`shrink-0 flex flex-col gap-3 overflow-y-auto transition-all duration-300 ${panelCompact ? "w-[240px]" : "w-[300px]"}`}>
+              {/* Back to slide button */}
+              {returnToSlide && (
+                <button
+                  onClick={() => router.push("/slide-builder")}
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 px-1"
+                >
+                  <ArrowLeft size={14} /> Quay về Slide Builder
+                </button>
+              )}
+
               {/* Prompt Input */}
               <div className="bg-white rounded-2xl border border-gray-100 p-3">
                 <div className="flex items-center gap-2 mb-2">
@@ -248,6 +285,16 @@ export default function SimuGenPage() {
                     <Play size={14} /> Xác nhận & Tạo mô phỏng
                   </button>
                 </div>
+              )}
+
+              {/* Insert to slide button - shown when done and came from slide-builder */}
+              {agentStep === "done" && returnToSlide && (
+                <button
+                  onClick={handleInsertToSlide}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium hover:shadow-lg transition-shadow"
+                >
+                  <Check size={16} /> Chèn vào Slide
+                </button>
               )}
             </div>
 

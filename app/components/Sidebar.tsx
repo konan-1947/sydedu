@@ -4,19 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Users,
-  ArrowUpCircle,
+  CreditCard,
   FolderOpen,
   CalendarDays,
   GraduationCap,
   Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
+  Presentation,
 } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
 
 const navItems = [
   { icon: LayoutDashboard, text: "Trang chủ", href: "/" },
+  { icon: Presentation, text: "Slide Composer", href: "/slide-builder" },
   { icon: Sparkles, text: "SimuGen AI", href: "/simu-gen" },
   { icon: GraduationCap, text: "Quản lý Lớp học", href: "/classes" },
   { icon: FolderOpen, text: "Kho lưu trữ", href: "/library" },
@@ -89,28 +90,28 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* Bottom buttons */}
-      <div className="p-4 space-y-2 border-t border-gray-100">
+      {/* User profile */}
+      <div className="p-3 border-t border-gray-100">
         {collapsed ? (
-          <>
-            <button className="w-full flex items-center justify-center py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors" title="Mời bạn bè">
-              <Users size={16} />
-            </button>
-            <button className="w-full flex items-center justify-center py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors" title="Nâng cấp">
-              <ArrowUpCircle size={16} />
-            </button>
-          </>
+          <div className="flex justify-center">
+            <div className="w-9 h-9 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-semibold text-sm cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all">
+              M
+            </div>
+          </div>
         ) : (
-          <>
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <Users size={16} />
-              Mời bạn bè
-            </button>
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
-              <ArrowUpCircle size={16} />
-              Nâng cấp
-            </button>
-          </>
+          <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+            <div className="w-9 h-9 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-semibold text-sm shrink-0">
+              M
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 truncate">Minh Nguyen</p>
+              <p className="text-xs text-gray-400 truncate">minh@sydedu.vn</p>
+            </div>
+            <div className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium shrink-0">
+              <CreditCard size={11} />
+              123k
+            </div>
+          </div>
         )}
       </div>
     </aside>
