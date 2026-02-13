@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useReducer, useEffect, useState, type Dispatch, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type Dispatch, type ReactNode } from "react";
 import { ComposerState, ComposerAction } from "../lib/types";
+import { useUndoReducer } from "./useUndoReducer";
 
 const STORAGE_KEY = "sydedu_slide_composer_state";
 const DEFAULT_STATE: ComposerState = { phase: "input", presentation: null, activeSlideIndex: 0 };
@@ -52,15 +53,23 @@ function reducer(state: ComposerState, action: ComposerAction): ComposerState {
 interface SlideContextType {
   state: ComposerState;
   dispatch: Dispatch<ComposerAction>;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 const SlideContext = createContext<SlideContextType>({
   state: DEFAULT_STATE,
   dispatch: () => {},
+  undo: () => {},
+  redo: () => {},
+  canUndo: false,
+  canRedo: false,
 });
 
 export function SlideProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, DEFAULT_STATE);
+  const { state, dispatch, undo, redo, canUndo, canRedo } = useUndoReducer(reducer, DEFAULT_STATE);
   const [hydrated, setHydrated] = useState(false);
 
   // Load from sessionStorage AFTER hydration to avoid mismatch
@@ -70,7 +79,6 @@ export function SlideProvider({ children }: { children: ReactNode }) {
       if (saved) {
         const parsed = JSON.parse(saved) as ComposerState;
         if (parsed.presentation) {
-          // If returning from simu-gen, force editor phase
           const hasSimResult = sessionStorage.getItem("simugen_result_html");
           dispatch({ type: "SET_PRESENTATION", presentation: parsed.presentation });
           if (!hasSimResult && parsed.phase === "input") {
@@ -83,7 +91,7 @@ export function SlideProvider({ children }: { children: ReactNode }) {
       }
     } catch { /* ignore */ }
     setHydrated(true);
-  }, []);
+  }, [dispatch]);
 
   // Persist state to sessionStorage on every change (after hydration)
   useEffect(() => {
@@ -96,7 +104,7 @@ export function SlideProvider({ children }: { children: ReactNode }) {
   }, [state, hydrated]);
 
   return (
-    <SlideContext.Provider value={{ state, dispatch }}>
+    <SlideContext.Provider value={{ state, dispatch, undo, redo, canUndo, canRedo }}>
       {children}
     </SlideContext.Provider>
   );

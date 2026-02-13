@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import PageShell from "../components/PageShell";
 import {
@@ -34,6 +34,33 @@ function getStepIndex(step: AgentStep): number {
   if (step === "idle") return -1;
   if (step === "done") return 4;
   return STEPS.findIndex((s) => s.key === step);
+}
+
+function playDoneSound() {
+  try {
+    const ctx = new AudioContext();
+    // First tone
+    const o1 = ctx.createOscillator();
+    const g1 = ctx.createGain();
+    o1.type = "sine";
+    o1.frequency.value = 880;
+    g1.gain.setValueAtTime(0.3, ctx.currentTime);
+    g1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    o1.connect(g1).connect(ctx.destination);
+    o1.start(ctx.currentTime);
+    o1.stop(ctx.currentTime + 0.3);
+    // Second tone (higher, delayed)
+    const o2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    o2.type = "sine";
+    o2.frequency.value = 1320;
+    g2.gain.setValueAtTime(0.3, ctx.currentTime + 0.15);
+    g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    o2.connect(g2).connect(ctx.destination);
+    o2.start(ctx.currentTime + 0.15);
+    o2.stop(ctx.currentTime + 0.5);
+    setTimeout(() => ctx.close(), 1000);
+  } catch { /* ignore if audio not available */ }
 }
 
 export default function SimuGenPage() {
@@ -129,6 +156,7 @@ export default function SimuGenPage() {
       setHtml(reviewData.html);
       setFixes(reviewData.fixes);
       setAgentStep("done");
+      playDoneSound();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Đã xảy ra lỗi");
       setAgentStep("idle");

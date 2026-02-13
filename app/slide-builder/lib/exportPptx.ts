@@ -103,12 +103,22 @@ export async function exportPptx(presentation: SlidePresentation) {
           fontSize: 18, italic: true,
           color: (el.fill || "2563eb").replace("#", ""),
         });
+      } else if (el.type === "image" && el.src) {
+        pptSlide.addImage({
+          data: el.src,
+          x: xInch, y: yInch, w: wInch, h: hInch,
+          rotate: el.rotation || 0,
+        });
       } else if (el.type === "text") {
         pptSlide.addText(el.content, {
           x: xInch, y: yInch, w: wInch, h: hInch,
           fontSize: Math.round((el.fontSize || 24) * 0.75),
+          bold: el.fontWeight === "bold",
+          italic: el.fontStyle === "italic",
+          underline: el.textDecoration === "underline" ? { style: "sng" } : undefined,
           color: (el.fill || "1e293b").replace("#", ""),
           align: el.align || "left",
+          rotate: el.rotation || 0,
         });
       }
     }

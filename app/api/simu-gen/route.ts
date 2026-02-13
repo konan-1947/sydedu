@@ -10,7 +10,22 @@ Trả về JSON:
 
 Chỉ hỏi khi thực sự thiếu thông tin quan trọng (vd: thiếu thông số, mơ hồ về loại chuyển động). Nếu prompt đã rõ ràng, questions = null.`;
 
-const GENERATE_PROMPT = `Bạn là chuyên gia vật lý và lập trình mô phỏng đồ họa cao cấp. Dựa trên kế hoạch đã được giáo viên xác nhận, tạo code HTML5/JS mô phỏng vật lý tương tác với đồ họa đẹp, hiện đại.
+const GENERATE_PROMPT = `Bạn là chuyên gia vật lý và lập trình mô phỏng đồ họa cao cấp. Dựa trên kế hoạch đã được giáo viên xác nhận, tạo code HTML5/JS mô phỏng vật lý tương tác với đồ họa đẹp, hiện đại, CHÍNH XÁC về mặt vật lý.
+
+## NGUYÊN TẮC QUAN TRỌNG NHẤT
+- Mô phỏng phải TRỰC QUAN, thể hiện rõ CẤU TRÚC VẬT LÝ thực tế của hiện tượng
+- KHÔNG BAO GIỜ chỉ vẽ hình học đơn giản (ô vuông, tròn) để đại diện cho thiết bị phức tạp
+- Phải vẽ đầy đủ các bộ phận cấu thành: ví dụ động cơ phải có stator, rotor, cuộn dây, từ trường; mạch điện phải có dây dẫn, điện trở, tụ điện, cuộn cảm với ký hiệu chuẩn
+- Dùng Canvas 2D API để vẽ chi tiết: arc, bezierCurveTo, lineTo... tạo hình dạng thực tế
+- Dùng màu sắc có ý nghĩa vật lý: đỏ/xanh cho cực từ N/S, vàng cho dòng điện, xanh cho từ trường
+
+## Hướng dẫn vẽ chi tiết trên Canvas
+- Cuộn dây: vẽ nhiều vòng arc chồng lên nhau, có 3D effect bằng gradient
+- Từ trường: vẽ đường sức bằng bezier curves với mũi tên, màu gradient xanh→tím
+- Dòng điện: vẽ particles chạy dọc dây dẫn (animated dots), hoặc mũi tên di chuyển
+- Rotor/Stator: vẽ hình tròn lồng nhau, rãnh, cuộn dây, trục quay
+- Vector lực/vận tốc: mũi tên có đầu tam giác, label rõ ràng, độ dài tỉ lệ giá trị
+- Đồ thị realtime: vẽ trục tọa độ, grid, đường cong liên tục cập nhật (giữ history array)
 
 ## Thư viện CDN bắt buộc
 - LUÔN load GSAP: <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -50,7 +65,7 @@ const GENERATE_PROMPT = `Bạn là chuyên gia vật lý và lập trình mô ph
 
 ## Yêu cầu vật lý
 - Đơn vị SI, tính toán vật lý chính xác với công thức chuẩn
-- Scale pixel/meter rõ ràng, hiển thị thước đo trên canvas
+- Scale pixel/meter rõ ràng, hiển thị thước đo trên canvas nếu phù hợp
 - UI điều khiển dùng tiếng Việt
 
 ## Code structure
@@ -58,29 +73,34 @@ const GENERATE_PROMPT = `Bạn là chuyên gia vật lý và lập trình mô ph
 - Tất cả trong 1 file HTML duy nhất, inline CSS và JS
 - Play/Pause/Reset buttons luôn có
 - Code sạch, có comment giải thích physics
+- Code phải DÀI VÀ CHI TIẾT — đừng lười, vẽ đầy đủ mọi thành phần
 
 Trả về JSON: { "html": "<!DOCTYPE html>..." }`;
 
 const REVIEW_PROMPT = `Bạn là reviewer chuyên kiểm tra mô phỏng vật lý với tiêu chuẩn cao về cả độ chính xác và chất lượng đồ họa. Kiểm tra code HTML sau:
 
+## Kiểm tra TRỰC QUAN (QUAN TRỌNG NHẤT)
+1. Hình vẽ có thể hiện ĐÚNG cấu trúc vật lý thực tế không? Ví dụ: động cơ phải có stator, rotor, cuộn dây; con lắc phải có dây treo, quả cầu, điểm treo
+2. KHÔNG CHẤP NHẬN hình đơn giản (chỉ 1 hình vuông, 1 hình tròn) đại diện cho thiết bị phức tạp — nếu thấy, phải VIẾT LẠI phần vẽ canvas cho chi tiết
+3. Có đủ các thành phần trực quan: cuộn dây, từ trường, dòng điện particles, vector lực...
+
 ## Kiểm tra vật lý
-1. Công thức vật lý có đúng không?
-2. Đơn vị có nhất quán không?
-3. Animation có mượt không? (requestAnimationFrame, delta time handling, dt capped)
+4. Công thức vật lý có đúng không?
+5. Đơn vị có nhất quán không?
+6. Animation có mượt không? (requestAnimationFrame, delta time handling, dt capped)
 
 ## Kiểm tra đồ họa & UI
-4. GSAP có được load từ CDN không? Nếu thiếu, thêm: <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-5. UI controls có được custom style không? (KHÔNG chấp nhận default browser buttons/sliders — phải có border-radius, gradient, shadow, hover effects)
-6. Canvas có hiệu ứng visual đủ không? (grid background, gradient fills cho vật thể, shadow, trail effects)
-7. Layout có dùng flexbox với controls panel tách biệt không?
-8. Panel thông số realtime có font monospace và màu accent không?
+7. GSAP có được load từ CDN không? Nếu thiếu, thêm: <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+8. UI controls có được custom style không? (KHÔNG chấp nhận default browser buttons/sliders)
+9. Canvas có hiệu ứng visual đủ không? (grid background, gradient fills, shadow, trail effects)
+10. Layout có dùng flexbox với controls panel tách biệt không?
 
 ## Kiểm tra kỹ thuật
-9. Controls có hoạt động đúng không?
-10. Có lỗi JS nào không?
-11. Code có responsive không? (ResizeObserver hoặc window resize)
+11. Controls có hoạt động đúng không?
+12. Có lỗi JS nào không?
+13. Code có responsive không? (ResizeObserver hoặc window resize)
 
-Nếu có lỗi hoặc thiếu yếu tố đồ họa, SỬA và trả về code đã sửa. Nếu không có lỗi, trả về code gốc.
+Nếu có lỗi hoặc thiếu chi tiết đồ họa, SỬA TOÀN BỘ và trả về code đã sửa. Đặc biệt nếu hình vẽ quá đơn giản, phải viết lại phần draw cho chi tiết.
 
 Trả về JSON:
 {
@@ -154,7 +174,7 @@ export async function POST(req: NextRequest) {
       const { html } = body;
       console.log("[SimuGen API] Step: review");
       const userContent = `Yêu cầu gốc: ${prompt}\n\nCode HTML cần review:\n${html}`;
-      const result = await callOpenAI(apiKey, REVIEW_PROMPT, userContent, 8192);
+      const result = await callOpenAI(apiKey, REVIEW_PROMPT, userContent, 16384);
       return NextResponse.json({ html: result.html || "", fixes: result.fixes || null });
     }
 

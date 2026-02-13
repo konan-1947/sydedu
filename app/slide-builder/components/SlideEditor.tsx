@@ -5,10 +5,11 @@ import { useSlideStore } from "../hooks/useSlideStore";
 import { SLIDE_WIDTH, SLIDE_HEIGHT } from "../lib/slideDefaults";
 import SlideRenderer from "./SlideRenderer";
 import FormulaEditor from "./editors/FormulaEditor";
+import KonvaCanvas from "./KonvaCanvas";
 import { useRouter } from "next/navigation";
 
 export default function SlideEditor() {
-  const { state, dispatch } = useSlideStore();
+  const { state, dispatch, undo, redo } = useSlideStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [editingFormula, setEditingFormula] = useState<{ elementId: string; content: string } | null>(null);
@@ -53,21 +54,30 @@ export default function SlideEditor() {
     }
   }, [state.presentation, dispatch]);
 
+  // Keyboard shortcuts: Ctrl+Z, Ctrl+Shift+Z
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && e.shiftKey) {
+        e.preventDefault();
+        redo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undo, redo]);
+
   if (!slide) return null;
 
-  const handleUpdateTitle = (title: string) => {
-    dispatch({ type: "UPDATE_SLIDE", index: state.activeSlideIndex, slide: { ...slide, title } });
-  };
-
-  const handleUpdateSubtitle = (subtitle: string) => {
-    dispatch({ type: "UPDATE_SLIDE", index: state.activeSlideIndex, slide: { ...slide, subtitle } });
-  };
-
-  const handleUpdateElement = (elementId: string, content: string) => {
-    const updatedElements = slide.elements.map(el =>
-      el.id === elementId ? { ...el, content } : el
-    );
-    dispatch({ type: "UPDATE_SLIDE", index: state.activeSlideIndex, slide: { ...slide, elements: updatedElements } });
+  const handleSlideUpdate = (updatedSlide: typeof slide) => {
+    dispatch({ type: "UPDATE_SLIDE", index: state.activeSlideIndex, slide: updatedSlide });
   };
 
   const handleEditFormula = (elementId: string, latex: string) => {
@@ -75,8 +85,11 @@ export default function SlideEditor() {
   };
 
   const handleFormulaSave = (latex: string) => {
-    if (!editingFormula) return;
-    handleUpdateElement(editingFormula.elementId, latex);
+    if (!editingFormula || !slide) return;
+    const updatedElements = slide.elements.map(el =>
+      el.id === editingFormula.elementId ? { ...el, content: latex } : el
+    );
+    dispatch({ type: "UPDATE_SLIDE", index: state.activeSlideIndex, slide: { ...slide, elements: updatedElements } });
     setEditingFormula(null);
   };
 
@@ -94,25 +107,46 @@ export default function SlideEditor() {
     router.push("/simu-gen");
   };
 
+  const scaledW = SLIDE_WIDTH * scale;
+  const scaledH = SLIDE_HEIGHT * scale;
+
   return (
-    <div ref={containerRef} className="flex-1 flex items-start justify-center bg-gray-100 pt-4 px-6 relative">
-      <div
-        className="shadow-2xl rounded-lg overflow-hidden bg-white"
-        style={{ width: SLIDE_WIDTH, height: SLIDE_HEIGHT, zoom: scale }}
-      >
-        <SlideRenderer
-          slide={slide}
-          className="w-full h-full"
-          editable
-          interactive={slide.type === "simulation"}
-          onUpdateTitle={handleUpdateTitle}
-          onUpdateSubtitle={handleUpdateSubtitle}
-          onUpdateElement={handleUpdateElement}
-          onEditFormula={handleEditFormula}
-          onSimulationCreate={handleSimulationCreate}
-          onSimulationPick={handleSimulationPick}
-        />
-      </div>
+    <div ref={containerRef} className="flex-1 flex items-start justify-center bg-gray-100 pt-4 px-6 relative group/editor">
+      {slide.type === "simulation" ? (
+        <div
+          className="shadow-2xl rounded-lg overflow-hidden bg-white relative"
+          style={{ width: scaledW, height: scaledH }}
+        >
+          {slide.simulationHtml ? (
+            <iframe
+              srcDoc={slide.simulationHtml}
+              sandbox="allow-scripts"
+              className="border-0 absolute top-0 left-0"
+              title={slide.title}
+              style={{ width: SLIDE_WIDTH, height: SLIDE_HEIGHT, transform: `scale(${scale})`, transformOrigin: "top left" }}
+            />
+          ) : (
+            <div style={{ width: SLIDE_WIDTH, height: SLIDE_HEIGHT, transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+              <SlideRenderer
+                slide={slide}
+                className="w-full h-full"
+                interactive
+                onSimulationCreate={handleSimulationCreate}
+                onSimulationPick={handleSimulationPick}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="shadow-2xl rounded-lg overflow-hidden bg-white">
+          <KonvaCanvas
+            slide={slide}
+            scale={scale}
+            onUpdate={handleSlideUpdate}
+            onEditFormula={handleEditFormula}
+          />
+        </div>
+      )}
       {editingFormula && (
         <FormulaEditor
           initialLatex={editingFormula.content}

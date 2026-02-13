@@ -7,11 +7,19 @@ interface SidebarContextType {
   toggle: () => void;
 }
 
-const SidebarContext = createContext<SidebarContextType>({ collapsed: false, toggle: () => {} });
+// Module-level state survives PageShell remounts across navigations
+let persistedCollapsed = true;
+
+const SidebarContext = createContext<SidebarContextType>({ collapsed: true, toggle: () => {} });
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const toggle = useCallback(() => setCollapsed((c) => !c), []);
+  const [collapsed, setCollapsed] = useState(persistedCollapsed);
+  const toggle = useCallback(() => {
+    setCollapsed((c) => {
+      persistedCollapsed = !c;
+      return !c;
+    });
+  }, []);
   return (
     <SidebarContext.Provider value={{ collapsed, toggle }}>
       {children}

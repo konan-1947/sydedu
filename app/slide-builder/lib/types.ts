@@ -10,8 +10,12 @@ export interface SlideElement {
   content: string;
   fontSize?: number;
   fontStyle?: string;
+  fontWeight?: "normal" | "bold";
+  textDecoration?: "none" | "underline";
   fill?: string;
   align?: "left" | "center" | "right";
+  rotation?: number;
+  src?: string;
 }
 
 export interface Slide {

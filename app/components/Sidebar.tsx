@@ -13,6 +13,7 @@ import {
   PanelLeftOpen,
   Presentation,
 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { useSidebar } from "./SidebarContext";
 
 const navItems = [
@@ -27,9 +28,24 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebar();
+  const asideRef = useRef<HTMLElement>(null);
+
+  // Click outside → auto collapse
+  useEffect(() => {
+    if (collapsed) return;
+    const handler = (e: MouseEvent) => {
+      if (asideRef.current && !asideRef.current.contains(e.target as Node)) {
+        toggle();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [collapsed, toggle]);
+
 
   return (
     <aside
+      ref={asideRef}
       className={`fixed left-0 top-0 bottom-0 bg-white border-r border-gray-100 flex flex-col z-20 transition-all duration-300 ${
         collapsed ? "w-[72px]" : "w-[260px]"
       }`}
@@ -73,6 +89,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => { if (collapsed) toggle(); }}
                 title={collapsed ? item.text : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   collapsed ? "justify-center" : ""

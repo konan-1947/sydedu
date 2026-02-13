@@ -40,16 +40,11 @@ export function usePresentMode({ totalSlides, activeIndex, onNavigate, onExit }:
     return () => document.removeEventListener("keydown", handleKey);
   }, [handleKey]);
 
-  // Fullscreen - enter once on mount, exit on unmount
+  // Hide scrollbar while presenting
   useEffect(() => {
-    if (!didEnterFullscreen.current && containerRef.current) {
-      containerRef.current.requestFullscreen?.().catch(() => {});
-      didEnterFullscreen.current = true;
-    }
+    document.body.style.overflow = "hidden";
     return () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
+      document.body.style.overflow = "";
     };
   }, []);
 
