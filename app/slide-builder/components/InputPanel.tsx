@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Wand2, Loader2 } from "lucide-react";
 import FileUpload from "../../components/FileUpload";
 import { useSlideStore } from "../hooks/useSlideStore";
+import { useModel } from "../../components/ModelContext";
 
 export default function InputPanel() {
   const { dispatch } = useSlideStore();
+  const { model } = useModel();
   const [topic, setTopic] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function InputPanel() {
       const res = await fetch("/api/slide-gen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topic.trim(), content: pasteText.trim() || undefined }),
+        body: JSON.stringify({ topic: topic.trim(), content: pasteText.trim() || undefined, model }),
       });
       if (!res.ok) {
         const data = await res.json();

@@ -3,7 +3,7 @@
 import { useSlideStore } from "../hooks/useSlideStore";
 import { usePresentMode } from "../hooks/usePresentMode";
 import SlideRenderer from "./SlideRenderer";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 export default function PresentMode() {
   const { state, dispatch } = useSlideStore();
@@ -25,6 +25,14 @@ export default function PresentMode() {
   return (
     <div ref={containerRef} className="group fixed inset-0 bg-black z-50 flex items-center justify-center">
       <SlideRenderer slide={slide} className="w-full h-full" style={{ maxWidth: "100vw", maxHeight: "100vh" }} />
+      <button
+        onClick={() => dispatch({ type: "SET_PHASE", phase: "editor" })}
+        className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+      >
+        <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white hover:bg-black/70 transition-colors">
+          <X size={20} />
+        </div>
+      </button>
       {canPrev && (
         <button
           onClick={() => dispatch({ type: "SET_ACTIVE", index: activeIndex - 1 })}

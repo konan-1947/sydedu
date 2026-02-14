@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import { SidebarProvider, useSidebar } from "./SidebarContext";
+import { ModelProvider } from "./ModelContext";
 
 function ShellInner({ children }: { children: ReactNode }) {
   const { collapsed } = useSidebar();
@@ -20,8 +21,10 @@ function ShellInner({ children }: { children: ReactNode }) {
 
 export default function PageShell({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider>
-      <ShellInner>{children}</ShellInner>
-    </SidebarProvider>
+    <ModelProvider>
+      <SidebarProvider>
+        <ShellInner>{children}</ShellInner>
+      </SidebarProvider>
+    </ModelProvider>
   );
 }

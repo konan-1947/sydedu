@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { callAI } from "../../lib/ai-client";
+import type { AIModel } from "../../components/ModelContext";
 
 const ANALYZE_PROMPT = `Bạn là chuyên gia vật lý giáo dục. Phân tích yêu cầu mô phỏng của giáo viên và lập kế hoạch.
+
+Nếu giáo viên gửi kèm ảnh tham khảo, hãy phân tích kỹ ảnh để hiểu: cấu trúc thiết bị/hiện tượng, bố cục, các thành phần vật lý, thông số có thể đọc được từ ảnh. Sử dụng thông tin từ ảnh để lập kế hoạch chính xác hơn.
 
 Trả về JSON:
 {
@@ -11,6 +15,8 @@ Trả về JSON:
 Chỉ hỏi khi thực sự thiếu thông tin quan trọng (vd: thiếu thông số, mơ hồ về loại chuyển động). Nếu prompt đã rõ ràng, questions = null.`;
 
 const GENERATE_PROMPT = `Bạn là chuyên gia vật lý và lập trình mô phỏng đồ họa cao cấp. Dựa trên kế hoạch đã được giáo viên xác nhận, tạo code HTML5/JS mô phỏng vật lý tương tác với đồ họa đẹp, hiện đại, CHÍNH XÁC về mặt vật lý.
+
+Nếu có ảnh tham khảo từ giáo viên, hãy tái hiện cấu trúc, bố cục, và các thành phần trong ảnh một cách trung thực nhất có thể trong mô phỏng.
 
 ## NGUYÊN TẮC QUAN TRỌNG NHẤT
 - Mô phỏng phải TRỰC QUAN, thể hiện rõ CẤU TRÚC VẬT LÝ thực tế của hiện tượng
@@ -27,14 +33,18 @@ const GENERATE_PROMPT = `Bạn là chuyên gia vật lý và lập trình mô ph
 - Vector lực/vận tốc: mũi tên có đầu tam giác, label rõ ràng, độ dài tỉ lệ giá trị
 - Đồ thị realtime: vẽ trục tọa độ, grid, đường cong liên tục cập nhật (giữ history array)
 
-## Thư viện CDN bắt buộc
-- LUÔN load GSAP: <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-- Nếu mô phỏng cần va chạm hoặc nhiều vật thể tương tác: load thêm Matter.js <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+## QUAN TRỌNG: KHÔNG dùng thư viện bên ngoài
+- KHÔNG được load bất kỳ CDN nào (GSAP, Matter.js, Three.js, etc.)
+- Code phải 100% tự viết, KHÔNG có thẻ <script src="..."> external
+- Dùng requestAnimationFrame cho animation
+- Tự viết physics engine đơn giản nếu cần va chạm
+- Lý do: code chạy trong sandbox iframe không có quyền fetch external resources
 
-## Layout & Responsive
-- Dùng flexbox: controls panel bên trái (width: 280px, shrink-0), canvas bên phải (flex-grow)
-- Toàn bộ trang height: 100vh, không scroll
-- Canvas tự co giãn theo container bằng ResizeObserver
+## Layout & Responsive (CỰC KỲ QUAN TRỌNG)
+- html, body: margin 0, padding 0, width 100%, height 100vh, overflow hidden
+- Dùng flexbox row: controls panel bên trái (width: 280px, shrink-0), canvas container bên phải (flex: 1, min-width: 0)
+- Canvas element phải có width và height BẰNG ĐÚNG kích thước container (dùng ResizeObserver để cập nhật canvas.width và canvas.height khi resize)
+- KHÔNG để khoảng trống thừa — canvas phải fill 100% vùng còn lại sau controls panel
 - Font-family: 'Segoe UI', system-ui, sans-serif
 
 ## UI Controls (KHÔNG dùng default browser styles)
@@ -60,7 +70,7 @@ const GENERATE_PROMPT = `Bạn là chuyên gia vật lý và lập trình mô ph
 
 ## Animation
 - Physics loop: requestAnimationFrame với delta time chính xác (performance.now())
-- GSAP cho UI transitions: gsap.from() khi controls panel xuất hiện, gsap.to() cho highlight effects
+- Tự viết transitions bằng CSS transition hoặc vanilla JS animation
 - Chuyển động mượt, dt capped ở 1/30s để tránh jump khi tab inactive
 
 ## Yêu cầu vật lý
@@ -73,7 +83,7 @@ const GENERATE_PROMPT = `Bạn là chuyên gia vật lý và lập trình mô ph
 - Tất cả trong 1 file HTML duy nhất, inline CSS và JS
 - Play/Pause/Reset buttons luôn có
 - Code sạch, có comment giải thích physics
-- Code phải DÀI VÀ CHI TIẾT — đừng lười, vẽ đầy đủ mọi thành phần
+- QUAN TRỌNG: Giữ tổng code HTML dưới 12000 ký tự để tránh bị cắt. Ưu tiên code gọn, hiệu quả. Dùng vòng lặp thay vì lặp code. Dùng tên biến ngắn trong draw functions. KHÔNG thêm comment dài dòng.
 
 Trả về JSON: { "html": "<!DOCTYPE html>..." }`;
 
@@ -90,10 +100,10 @@ const REVIEW_PROMPT = `Bạn là reviewer chuyên kiểm tra mô phỏng vật l
 6. Animation có mượt không? (requestAnimationFrame, delta time handling, dt capped)
 
 ## Kiểm tra đồ họa & UI
-7. GSAP có được load từ CDN không? Nếu thiếu, thêm: <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+7. Code có dùng thư viện CDN bên ngoài không? Nếu có, phải XÓA và viết lại bằng vanilla JS (vì iframe sandbox không fetch được external scripts)
 8. UI controls có được custom style không? (KHÔNG chấp nhận default browser buttons/sliders)
 9. Canvas có hiệu ứng visual đủ không? (grid background, gradient fills, shadow, trail effects)
-10. Layout có dùng flexbox với controls panel tách biệt không?
+10. Layout có dùng flexbox với controls panel tách biệt không? Canvas có FILL ĐẦY 100% vùng còn lại không? (html/body phải margin:0, height:100vh, canvas phải resize theo container bằng ResizeObserver). Nếu canvas không fill đầy, phải SỬA.
 
 ## Kiểm tra kỹ thuật
 11. Controls có hoạt động đúng không?
@@ -108,48 +118,44 @@ Trả về JSON:
   "fixes": "Mô tả các lỗi đã sửa" hoặc null nếu không có lỗi
 }`;
 
-type Step = "analyze" | "generate" | "review";
-
-async function callOpenAI(apiKey: string, systemPrompt: string, userContent: string, maxTokens = 4096) {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ],
-      temperature: 0.7,
-      max_tokens: maxTokens,
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    console.error("[SimuGen API] OpenAI lỗi:", response.status, err);
-    throw new Error(`OpenAI API error: ${response.status}`);
+// Attempt to extract HTML from truncated JSON like {"html": "<!DOCTYPE...
+function extractHtmlFromTruncated(raw: string): string | null {
+  const match = raw.match(/"html"\s*:\s*"([\s\S]+)/);
+  if (!match) return null;
+  // Remove the trailing incomplete part - unescape what we have
+  let html = match[1];
+  // Remove trailing incomplete JSON (last `"` or `"}` may be missing)
+  html = html.replace(/"\s*,?\s*"fixes"[\s\S]*$/, "");
+  html = html.replace(/"\s*}\s*$/, "");
+  // If it still ends abruptly, just use what we have
+  // Unescape JSON string escapes
+  try {
+    html = JSON.parse(`"${html}"`);
+  } catch {
+    html = html.replace(/\\n/g, "\n").replace(/\\t/g, "\t").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
   }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("Không nhận được phản hồi từ AI");
-  return JSON.parse(content);
+  return html || null;
 }
 
-export async function POST(req: NextRequest) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "OPENAI_API_KEY chưa được cấu hình" }, { status: 500 });
+function safeParseAIResponse(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // Try to salvage truncated HTML response
+    const html = extractHtmlFromTruncated(raw);
+    if (html) return { html };
+    throw new Error("AI trả về JSON không hợp lệ (có thể bị cắt do giới hạn token)");
   }
+}
 
+type Step = "analyze" | "generate" | "review";
+
+export async function POST(req: NextRequest) {
   const body = await req.json();
   const step: Step = body.step || "analyze";
-  const { prompt } = body;
+  const { prompt, model: reqModel, image } = body;
+  const model: AIModel = reqModel || "gpt-4o";
+  const imageBase64: string | null = typeof image === "string" ? image : null;
 
   if (!prompt || typeof prompt !== "string") {
     return NextResponse.json({ error: "Prompt không hợp lệ" }, { status: 400 });
@@ -157,24 +163,27 @@ export async function POST(req: NextRequest) {
 
   try {
     if (step === "analyze") {
-      console.log("[SimuGen API] Step: analyze");
-      const result = await callOpenAI(apiKey, ANALYZE_PROMPT, prompt);
+      console.log("[SimuGen API] Step: analyze, model:", model);
+      const raw = await callAI(model, ANALYZE_PROMPT, prompt, 4096, true, imageBase64);
+      const result = JSON.parse(raw);
       return NextResponse.json({ plan: result.plan || "", questions: result.questions || null });
     }
 
     if (step === "generate") {
       const { plan, answers } = body;
-      console.log("[SimuGen API] Step: generate");
+      console.log("[SimuGen API] Step: generate, model:", model, "hasImage:", !!imageBase64, "imageSize:", imageBase64 ? Math.round(imageBase64.length / 1024) + "KB" : "N/A");
       const userContent = `Yêu cầu gốc: ${prompt}\n\nKế hoạch đã xác nhận:\n${plan}${answers ? `\n\nThông tin bổ sung từ giáo viên:\n${answers}` : ""}`;
-      const result = await callOpenAI(apiKey, GENERATE_PROMPT, userContent, 16384);
+      const raw = await callAI(model, GENERATE_PROMPT, userContent, 16384, true, imageBase64);
+      const result = safeParseAIResponse(raw);
       return NextResponse.json({ html: result.html || "" });
     }
 
     if (step === "review") {
       const { html } = body;
-      console.log("[SimuGen API] Step: review");
+      console.log("[SimuGen API] Step: review, model:", model);
       const userContent = `Yêu cầu gốc: ${prompt}\n\nCode HTML cần review:\n${html}`;
-      const result = await callOpenAI(apiKey, REVIEW_PROMPT, userContent, 16384);
+      const raw = await callAI(model, REVIEW_PROMPT, userContent, 16384);
+      const result = safeParseAIResponse(raw);
       return NextResponse.json({ html: result.html || "", fixes: result.fixes || null });
     }
 

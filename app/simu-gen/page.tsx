@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import PageShell from "../components/PageShell";
+import { useModel } from "../components/ModelContext";
 import {
   Sparkles,
   Send,
@@ -12,6 +13,8 @@ import {
   Play,
   ArrowLeft,
   Check,
+  ImagePlus,
+  X,
 } from "lucide-react";
 
 const EXAMPLE_PROMPTS = [
@@ -65,7 +68,9 @@ function playDoneSound() {
 
 export default function SimuGenPage() {
   const router = useRouter();
+  const { model } = useModel();
   const [prompt, setPrompt] = useState("");
+  const [image, setImage] = useState<string | null>(null);
   const [agentStep, setAgentStep] = useState<AgentStep>("idle");
   const [error, setError] = useState("");
   const [html, setHtml] = useState("");
@@ -93,6 +98,16 @@ export default function SimuGenPage() {
     }
   }, []);
 
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }, []);
+
   const reset = () => {
     setAgentStep("idle");
     setError("");
@@ -104,10 +119,11 @@ export default function SimuGenPage() {
   };
 
   const apiCall = async (body: Record<string, unknown>) => {
+    const currentModel = localStorage.getItem("sydedu_ai_model") || "gpt-4o";
     const res = await fetch("/api/simu-gen", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, model: currentModel }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Lỗi không xác định");
@@ -119,7 +135,7 @@ export default function SimuGenPage() {
     reset();
     setAgentStep("analyzing");
     try {
-      const data = await apiCall({ step: "analyze", prompt: prompt.trim() });
+      const data = await apiCall({ step: "analyze", prompt: prompt.trim(), image });
       setPlan(data.plan);
       if (data.questions && data.questions.length > 0) {
         setQuestions(data.questions);
@@ -144,6 +160,7 @@ export default function SimuGenPage() {
         prompt: prompt.trim(),
         plan,
         answers: answersText,
+        image,
       });
 
       setAgentStep("reviewing");
@@ -206,6 +223,27 @@ export default function SimuGenPage() {
                     if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && agentStep === "idle") startAnalyze();
                   }}
                 />
+                {/* Image upload */}
+                <div className="mt-2">
+                  {image ? (
+                    <div className="relative inline-block">
+                      <img src={image} alt="Ảnh tham khảo" className="max-h-28 rounded-lg border border-gray-200" />
+                      <button
+                        onClick={() => setImage(null)}
+                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-500 cursor-pointer transition-colors">
+                      <ImagePlus size={14} />
+                      <span>Thêm ảnh tham khảo</span>
+                      <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                    </label>
+                  )}
+                </div>
+
                 <button
                   onClick={startAnalyze}
                   disabled={isProcessing || !prompt.trim()}

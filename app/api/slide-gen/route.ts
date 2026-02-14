@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { callAI } from "../../lib/ai-client";
+import type { AIModel } from "../../components/ModelContext";
 
 const SYSTEM_PROMPT = `Bạn là chuyên gia giáo dục Việt Nam. Tạo nội dung slide bài giảng dựa trên chủ đề/giáo án được cung cấp.
 
@@ -44,13 +46,9 @@ Quy tắc:
 - bgColor cho intro: "#1e3a5f", concept: "#ffffff", formula: "#f8fafc", quiz: "#fffbeb"`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "OPENAI_API_KEY chưa được cấu hình" }, { status: 500 });
-  }
-
   const body = await req.json();
-  const { topic, content } = body;
+  const { topic, content, model: reqModel } = body;
+  const model: AIModel = reqModel || "gpt-4o";
 
   if (!topic && !content) {
     return NextResponse.json({ error: "Cần nhập chủ đề hoặc nội dung" }, { status: 400 });
@@ -61,36 +59,7 @@ export async function POST(req: NextRequest) {
     : `Chủ đề: ${topic}`;
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
-        temperature: 0.7,
-        max_tokens: 8192,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error("[SlideGen API] OpenAI error:", response.status, err);
-      return NextResponse.json({ error: `OpenAI API error: ${response.status}` }, { status: 500 });
-    }
-
-    const data = await response.json();
-    const raw = data.choices?.[0]?.message?.content;
-    if (!raw) {
-      return NextResponse.json({ error: "Không nhận được phản hồi từ AI" }, { status: 500 });
-    }
-
+    const raw = await callAI(model, SYSTEM_PROMPT, userMessage, 8192);
     const presentation = JSON.parse(raw);
     return NextResponse.json(presentation);
   } catch (e: unknown) {
